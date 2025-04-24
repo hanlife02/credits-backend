@@ -62,14 +62,29 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 from app.core.config import settings
 
 # 从环境变量中获取前端域名
-frontend_origins = settings.FRONTEND_ORIGINS.split(",") if settings.FRONTEND_ORIGINS else []
+frontend_origins_str = settings.FRONTEND_ORIGINS
+frontend_origins = [origin.strip() for origin in frontend_origins_str.split(",") if origin.strip()] if frontend_origins_str else []
+
+# 打印调试信息
+print(f"CORS 配置的域名: {frontend_origins}")
+
+# 确保包含所有需要的域名
+required_origins = [
+    "https://thuhub.com",
+    "https://www.thuhub.com",
+    "https://credits.hanlife02.com"
+]
+
+# 合并并去重
+all_origins = list(set(frontend_origins + required_origins))
+print(f"CORS 最终允许的域名: {all_origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=frontend_origins,
+    allow_origins=all_origins,
     allow_credentials=True,
     # 限制允许的方法
-    allow_methods=["GET", "POST", "PUT", "DELETE",],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     # 限制允许的头部
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
