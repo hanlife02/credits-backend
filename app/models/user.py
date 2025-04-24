@@ -1,6 +1,5 @@
-from sqlalchemy import Boolean, Column, String, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, String, DateTime
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
 import uuid
 
 from app.db.base import Base
@@ -14,9 +13,5 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
-    default_training_program_id = Column(String, ForeignKey("training_programs.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Relationships
-    default_training_program = relationship("TrainingProgram", foreign_keys=[default_training_program_id])

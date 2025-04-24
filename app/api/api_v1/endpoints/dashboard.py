@@ -13,28 +13,8 @@ from app.schemas.dashboard import CreditSummary, CategoryProgress, CategoryProgr
 router = APIRouter()
 
 
-@router.get("/credit-summary", response_model=CreditSummary)
-def get_default_credit_summary(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> Any:
-    """
-    获取默认培养方案的学分汇总
-
-    如果用户设置了默认培养方案，则返回该方案的学分汇总
-    """
-    if not current_user.default_training_program_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="未设置默认培养方案，请先选择一个培养方案",
-        )
-
-    # 使用默认培养方案ID调用学分汇总函数
-    return get_credit_summary_by_id(current_user.default_training_program_id, current_user, db)
-
-
 @router.get("/credit-summary/{training_program_id}", response_model=CreditSummary)
-def get_credit_summary_by_id(
+def get_credit_summary(
     training_program_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
