@@ -1,117 +1,179 @@
-# Graduation Credit Audit System Backend
+# Docker 部署指南
 
-A backend API for managing graduation credits and requirements.
+本文档提供了使用 Docker 和 Docker Compose 部署毕业学分审查系统的详细说明。
 
-## Features
+## 前提条件
 
-- Email authentication with verification codes
-- User roles (regular users and admin users)
-- Training program management
-- Course category management with hierarchical structure
-- Course management with different grading systems
-- Dashboard for tracking progress toward graduation requirements
+- 安装 [Docker](https://docs.docker.com/get-docker/)
+- 安装 [Docker Compose](https://docs.docker.com/compose/install/)
+- 基本的 Docker 和命令行知识
 
-## Setup
+## 部署步骤
 
-### Prerequisites
+### 1. 准备环境变量
 
-- Python 3.8+
-
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone <repository-url>
-cd credits-backend
-```
-
-2. Create a virtual environment and activate it:
-
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-4. Create a `.env` file based on `.env.example`:
+复制 `.env.example` 文件到 `.env`：
 
 ```bash
 cp .env.example .env
 ```
 
-5. Edit the `.env` file with your configuration.
-
-6. Initialize the database:
+编辑 `.env` 文件，填写实际的配置值：
 
 ```bash
-alembic upgrade head
+# 数据库设置
+DATABASE_URL=sqlite:///./data/credits.db
+
+# 安全设置
+SECRET_KEY=your-secure-secret-key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# 邮件设置
+SMTP_HOST=smtp.your-email-provider.com
+SMTP_PORT=465
+SMTP_USER=your-email@example.com
+SMTP_PASSWORD=your-email-password
+FROM_EMAIL=your-email@example.com
+
+# API 密钥
+API_KEY=your-secure-api-key
+
+# 管理员用户
+ADMIN_EMAILS=admin@your-domain.com
+
+# 默认管理员密码
+DEFAULT_ADMIN_PASSWORD=your-secure-admin-password
+
+# 前端域名（用于 CORS）
+FRONTEND_ORIGINS=https://your-frontend-domain.com,https://www.your-frontend-domain.com
 ```
 
-### Running the Application
+### 2. 构建和启动容器
+
+使用 Docker Compose 构建和启动容器：
 
 ```bash
-uvicorn main:app --reload
+# 构建镜像
+docker-compose build
+
+# 启动容器
+docker-compose up -d
 ```
 
-The API will be available at http://localhost:8000.
+这将在后台启动 API 服务。
 
-API documentation will be available at http://localhost:8000/docs.
+### 3. 验证部署
 
-## API Endpoints
+检查容器是否正在运行：
 
-### Authentication
+```bash
+docker-compose ps
+```
 
-- `POST /api/v1/auth/register/request` - Request email verification for registration
-- `POST /api/v1/auth/register/confirm` - Complete registration with verification code
-- `POST /api/v1/auth/login` - Login and get access token
-- `POST /api/v1/auth/password-reset/request` - Request password reset
-- `POST /api/v1/auth/password-reset/confirm` - Confirm password reset with verification code
+检查 API 健康状态：
 
-### Users
+```bash
+curl -H "X-API-Key: your-api-key" http://localhost:8000/health
+```
 
-- `GET /api/v1/users/me` - Get current user
-- `PUT /api/v1/users/me` - Update current user
-- `GET /api/v1/users/{user_id}` - Get a specific user by ID (admin only)
+### 4. 查看日志
 
-### Training Programs
+```bash
+# 查看实时日志
+docker-compose logs -f api
 
-- `POST /api/v1/training-programs/` - Create a new training program
-- `GET /api/v1/training-programs/` - Get all training programs
-- `GET /api/v1/training-programs/{training_program_id}` - Get a specific training program
-- `PUT /api/v1/training-programs/{training_program_id}` - Update a training program
-- `DELETE /api/v1/training-programs/{training_program_id}` - Delete a training program
-- `POST /api/v1/training-programs/{training_program_id}/publish` - Publish a training program (admin only)
+# 查看最近 100 行日志
+docker-compose logs --tail=100 api
+```
 
-### Course Categories
+### 5. 停止和重启服务
 
-- `POST /api/v1/course-categories/` - Create a new course category
-- `GET /api/v1/course-categories/training-program/{training_program_id}` - Get all categories for a training program
-- `GET /api/v1/course-categories/{category_id}` - Get a specific category
-- `PUT /api/v1/course-categories/{category_id}` - Update a category
-- `DELETE /api/v1/course-categories/{category_id}` - Delete a category
+```bash
+# 停止服务
+docker-compose stop
 
-### Courses
+# 重启服务
+docker-compose restart
 
-- `POST /api/v1/courses/` - Create a new course
-- `GET /api/v1/courses/` - Get all courses for the current user
-- `GET /api/v1/courses/{course_id}` - Get a specific course
-- `PUT /api/v1/courses/{course_id}` - Update a course
-- `DELETE /api/v1/courses/{course_id}` - Delete a course
+# 停止并移除容器（保留数据卷）
+docker-compose down
+```
 
-### Dashboard
+## 使用 PostgreSQL 数据库（可选）
 
-- `GET /api/v1/dashboard/credit-summary/{training_program_id}` - Get credit summary for a training program
+如果您想使用 PostgreSQL 而不是 SQLite，请按照以下步骤操作：
 
-### Health Check
+1. 取消注释 `docker-compose.yml` 文件中的 `db` 服务部分
+2. 在 `.env` 文件中添加以下变量：
 
-- `GET /health` - Check if the API is running
+```bash
+DB_USER=postgres
+DB_PASSWORD=your-secure-password
+DB_NAME=credits
+```
 
-## API Key
+3. 更新 `DATABASE_URL` 变量：
 
-All API requests require an API key to be included in the `X-API-Key` header.
+```bash
+DATABASE_URL=postgresql://postgres:your-secure-password@db:5432/credits
+```
+
+4. 重新启动服务：
+
+```bash
+docker-compose down
+docker-compose up -d
+```
+
+## 生产环境注意事项
+
+1. **安全性**：
+
+   - 使用强密码和 API 密钥
+   - 限制 Docker 容器的资源使用
+   - 定期更新 Docker 镜像和依赖项
+
+2. **备份**：
+
+   - 定期备份数据卷：`docker volume backup credits-data`
+   - 如果使用 PostgreSQL，设置定期数据库备份
+
+3. **监控**：
+
+   - 使用 Docker 的健康检查功能
+   - 考虑设置容器监控工具（如 Prometheus + Grafana）
+
+4. **扩展**：
+   - 对于高负载场景，考虑使用 Docker Swarm 或 Kubernetes 进行扩展
+
+## 故障排除
+
+1. **容器无法启动**：
+
+   - 检查 Docker 日志：`docker-compose logs api`
+   - 验证环境变量是否正确设置
+
+2. **API 无法访问**：
+
+   - 检查端口映射：`docker-compose ps`
+   - 确认防火墙设置允许访问端口 8000
+
+3. **数据库连接问题**：
+   - 如果使用 PostgreSQL，确保数据库容器已启动
+   - 验证 `DATABASE_URL` 是否正确
+
+## 更新应用
+
+要更新应用到新版本，请按照以下步骤操作：
+
+```bash
+# 拉取最新代码
+git pull
+
+# 重新构建镜像
+docker-compose build
+
+# 重新启动容器
+docker-compose up -d
+```
