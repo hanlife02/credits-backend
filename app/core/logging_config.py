@@ -12,10 +12,25 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 
-# 日志目录
-LOG_DIR = "logs"
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
+# 日志目录 - 使用绝对路径指向项目根目录的logs文件夹
+import os.path
+
+# 获取当前文件的目录
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 获取项目根目录
+ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "../.."))
+
+# 日志目录设置为项目根目录下的logs文件夹
+LOG_DIR = os.path.join(ROOT_DIR, "logs")
+
+# 确保日志目录存在
+try:
+    if not os.path.exists(LOG_DIR):
+        os.makedirs(LOG_DIR)
+    print(f"日志目录设置为: {LOG_DIR}")
+except Exception as e:
+    print(f"无法创建日志目录: {e}")
 
 # 日志格式
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
