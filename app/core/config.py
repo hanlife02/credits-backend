@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Default admin password (used when creating new admin users)
     DEFAULT_ADMIN_PASSWORD: str = "admin123"
 
+    # Frontend origins for CORS
+    FRONTEND_ORIGINS: str = "http://localhost:3000"
+
     @model_validator(mode='after')
     def parse_admin_emails(self) -> 'Settings':
         if isinstance(self.ADMIN_EMAILS, str):

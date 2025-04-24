@@ -90,10 +90,17 @@ def start_app():
         display_email = admin_email[0]
     else:
         display_email = admin_email if isinstance(admin_email, str) else 'admin@example.com'
-    print(f"Email: {display_email}")
-    print(f"Password: {settings.DEFAULT_ADMIN_PASSWORD}")
-    print("\nPress Ctrl+C to stop the server")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # 在生产环境中不打印敏感信息
+    print("\nStarting production server...")
+    # 使用生产环境配置启动服务器
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False,
+        workers=4,  # 根据服务器CPU核心数调整
+        log_level="error"  # 生产环境中只记录错误
+    )
 
 
 if __name__ == "__main__":

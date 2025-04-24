@@ -2,11 +2,11 @@
 Author: Ethan && ethan@hanlife02.com
 Date: 2025-04-24 13:17:39
 LastEditors: Ethan && ethan@hanlife02.com
-LastEditTime: 2025-04-24 16:45:09
+LastEditTime: 2025-04-24 17:10:09
 FilePath: /credits-backend/main.py
-Description: 
+Description:
 
-Copyright (c) 2025 by Ethan, All Rights Reserved. 
+Copyright (c) 2025 by Ethan, All Rights Reserved.
 '''
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,13 +53,20 @@ async def custom_swagger_ui_html():
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Add CORS middleware
+# CORS middleware with production settings
+from app.core.config import settings
+
+# 从环境变量中获取前端域名
+frontend_origins = settings.FRONTEND_ORIGINS.split(",") if settings.FRONTEND_ORIGINS else []
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=frontend_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # 限制允许的方法
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    # 限制允许的头部
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
 # Include API router with API key verification
@@ -83,4 +90,12 @@ async def health_check():
     }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # 生产环境配置，移除热重载功能
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False,
+        workers=4,  # 根据服务器CPU核心数调整
+        log_level="error"  # 生产环境中只记录错误
+    )
