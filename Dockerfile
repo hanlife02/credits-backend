@@ -29,8 +29,8 @@ RUN pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r req
     pip install -i https://mirrors.aliyun.com/pypi/simple/ gunicorn
 
 # 创建数据和日志目录
-RUN mkdir -p /app/data /app/logs && \
-    chmod 777 /app/data /app/logs
+RUN mkdir -p /app/data /app/logs /app/logs/emails && \
+    chmod -R 777 /app/data /app/logs
 
 # 复制应用代码
 COPY . .

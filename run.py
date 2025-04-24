@@ -1,3 +1,13 @@
+'''
+Author: Ethan && ethan@hanlife02.com
+Date: 2025-04-24 13:24:41
+LastEditors: Ethan && ethan@hanlife02.com
+LastEditTime: 2025-04-24 19:51:39
+FilePath: /credits-backend/run.py
+Description: 
+
+Copyright (c) 2025 by Ethan, All Rights Reserved. 
+'''
 import uvicorn
 import os
 import sys
