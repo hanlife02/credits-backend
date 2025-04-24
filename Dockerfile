@@ -32,6 +32,10 @@ RUN pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r req
 RUN mkdir -p /app/data /app/logs /app/logs/emails && \
     chmod -R 777 /app/data /app/logs
 
+# 复制启动脚本
+COPY start.sh .
+RUN chmod +x start.sh
+
 # 复制应用代码
 COPY . .
 
@@ -49,5 +53,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# 启动命令 - 使用 gunicorn 作为生产 WSGI 服务器
-CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--workers", "4", "--log-level", "error"]
+# 启动命令 - 使用启动脚本初始化数据库并启动应用
+CMD ["./start.sh"]
