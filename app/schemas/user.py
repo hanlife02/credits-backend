@@ -16,6 +16,7 @@ class UserCreate(UserBase):
 # Properties to receive via API on update
 class UserUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=8)
+    default_training_program_id: Optional[str] = None
 
 
 # Properties to return via API
@@ -23,6 +24,7 @@ class User(UserBase):
     id: str
     is_active: bool
     is_admin: bool
+    default_training_program_id: Optional[str] = None
     created_at: datetime
 
     class Config:
