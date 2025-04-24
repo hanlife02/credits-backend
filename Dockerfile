@@ -11,8 +11,9 @@ ENV PYTHONPATH=/app \
     TZ=Asia/Shanghai
 
 # 使用阿里云镜像源并安装系统依赖
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
-    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+RUN echo "deb https://mirrors.aliyun.com/debian/ bullseye main non-free contrib" > /etc/apt/sources.list && \
+    echo "deb https://mirrors.aliyun.com/debian-security/ bullseye-security main" >> /etc/apt/sources.list && \
+    echo "deb https://mirrors.aliyun.com/debian/ bullseye-updates main non-free contrib" >> /etc/apt/sources.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends gcc libpq-dev curl && \
     apt-get clean && \
