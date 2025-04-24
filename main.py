@@ -2,7 +2,7 @@
 Author: Ethan && ethan@hanlife02.com
 Date: 2025-04-24 13:17:39
 LastEditors: Ethan && ethan@hanlife02.com
-LastEditTime: 2025-04-24 17:10:09
+LastEditTime: 2025-04-24 19:35:00
 FilePath: /credits-backend/main.py
 Description:
 
@@ -11,18 +11,23 @@ Copyright (c) 2025 by Ethan, All Rights Reserved.
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import logging
 
 from app.api.api_v1.api import api_router
-# from app.core.config import settings  # 未使用
 from app.api.deps import verify_api_key
+from app.core.logging_config import setup_logging
 
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 
+# 初始化日志配置
+logger = setup_logging()
+logger.info("应用程序启动，日志系统初始化完成")
+
 app = FastAPI(
     title="毕业学分审查系统",
     description="用于管理毕业学分和要求的API",
-    version="1.1.1",
+    version="1.1.2",
     docs_url=None,  # 禁用默认的 docs 路径
     redoc_url="/redoc",
     openapi_tags=[
@@ -42,7 +47,7 @@ app = FastAPI(
 async def custom_swagger_ui_html():
     return get_swagger_ui_html(
         openapi_url=app.openapi_url,
-        title=app.title + " - API 文档 v1.1.1",
+        title=app.title + " - API 文档 v1.1.2",
         swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
         swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
         swagger_favicon_url="/static/favicon.png",
@@ -64,7 +69,7 @@ app.add_middleware(
     allow_origins=frontend_origins,
     allow_credentials=True,
     # 限制允许的方法
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE",],
     # 限制允许的头部
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
@@ -85,7 +90,7 @@ async def health_check():
     return {
         "status": "ok",
         "message": "API正在运行",
-        "version": "1.1.1",
+        "version": "1.1.2",
         "api_key_status": "valid"
     }
 

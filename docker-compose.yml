@@ -9,6 +9,7 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+      - "465:465"
     volumes:
       - credits-data:/app/data
       - ./logs:/app/logs

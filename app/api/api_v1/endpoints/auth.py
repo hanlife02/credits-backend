@@ -1,5 +1,6 @@
 from datetime import timedelta
 from typing import Any
+import logging
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -14,6 +15,9 @@ from app.schemas.user import User as UserSchema, UserCreate, Token, PasswordRese
 from app.schemas.verification import VerificationRequest, VerificationConfirm
 from app.services.email import generate_verification_code, send_verification_email, send_password_reset_email
 
+# 配置日志
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
@@ -27,35 +31,58 @@ def register_request(
 
     发送验证码到指定邮箱用于注册账户
     """
-    # Check if user already exists
-    user = db.query(User).filter(User.email == verification_request.email).first()
-    if user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="邮箱已经注册",
+    try:
+        logger.info(f"收到注册验证码请求: {verification_request.email}")
+
+        # Check if user already exists
+        user = db.query(User).filter(User.email == verification_request.email).first()
+        if user:
+            logger.info(f"邮箱已注册: {verification_request.email}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="邮箱已经注册",
+            )
+
+        # Generate verification code
+        code = generate_verification_code()
+        logger.info(f"为邮箱 {verification_request.email} 生成验证码")
+
+        # Save verification code to database
+        verification = VerificationCode(
+            email=verification_request.email,
+            code=code,
+            purpose="registration",
         )
+        db.add(verification)
+        db.commit()
+        logger.info(f"验证码已保存到数据库: {verification_request.email}")
 
-    # Generate verification code
-    code = generate_verification_code()
+        # Send verification email
+        logger.info(f"尝试发送验证邮件到: {verification_request.email}")
+        email_sent = send_verification_email(verification_request.email, code)
 
-    # Save verification code to database
-    verification = VerificationCode(
-        email=verification_request.email,
-        code=code,
-        purpose="registration",
-    )
-    db.add(verification)
-    db.commit()
+        if not email_sent:
+            logger.error(f"发送验证邮件失败: {verification_request.email}")
+            # 即使邮件发送失败，也不删除数据库中的验证码记录
+            # 这样用户可以请求重新发送验证码
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="发送验证邮件失败，请稍后重试或联系管理员",
+            )
 
-    # Send verification email
-    email_sent = send_verification_email(verification_request.email, code)
-    if not email_sent:
+        logger.info(f"验证邮件发送成功: {verification_request.email}")
+        return {"message": "验证码已发送到邮箱"}
+    except HTTPException:
+        # 重新抛出HTTP异常
+        raise
+    except Exception as e:
+        # 记录未预期的错误
+        logger.error(f"处理注册验证码请求时发生错误: {str(e)}")
+        # 返回通用错误消息
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="发送验证邮件失败",
+            detail="处理请求时发生错误，请稍后重试",
         )
-
-    return {"message": "验证码已发送到邮箱"}
 
 
 @router.post("/register/confirm", response_model=UserSchema)
@@ -164,33 +191,55 @@ def password_reset_request(
 
     发送密码重置验证码到指定邮箱
     """
-    # Check if user exists
-    user = db.query(User).filter(User.email == password_reset.email).first()
-    if not user:
-        # Don't reveal that the user doesn't exist
+    try:
+        logger.info(f"收到密码重置验证码请求: {password_reset.email}")
+
+        # Check if user exists
+        user = db.query(User).filter(User.email == password_reset.email).first()
+        if not user:
+            # Don't reveal that the user doesn't exist
+            logger.info(f"邮箱不存在，但不透露此信息: {password_reset.email}")
+            return {"message": "如果邮箱已注册，密码重置验证码已发送"}
+
+        # Generate verification code
+        code = generate_verification_code()
+        logger.info(f"为邮箱 {password_reset.email} 生成密码重置验证码")
+
+        # Save verification code to database
+        verification = VerificationCode(
+            email=password_reset.email,
+            code=code,
+            purpose="password_reset",
+        )
+        db.add(verification)
+        db.commit()
+        logger.info(f"密码重置验证码已保存到数据库: {password_reset.email}")
+
+        # Send password reset email
+        logger.info(f"尝试发送密码重置邮件到: {password_reset.email}")
+        email_sent = send_password_reset_email(password_reset.email, code)
+
+        if not email_sent:
+            logger.error(f"发送密码重置邮件失败: {password_reset.email}")
+            # 即使邮件发送失败，也不删除数据库中的验证码记录
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="发送密码重置邮件失败，请稍后重试或联系管理员",
+            )
+
+        logger.info(f"密码重置邮件发送成功: {password_reset.email}")
         return {"message": "如果邮箱已注册，密码重置验证码已发送"}
-
-    # Generate verification code
-    code = generate_verification_code()
-
-    # Save verification code to database
-    verification = VerificationCode(
-        email=password_reset.email,
-        code=code,
-        purpose="password_reset",
-    )
-    db.add(verification)
-    db.commit()
-
-    # Send password reset email
-    email_sent = send_password_reset_email(password_reset.email, code)
-    if not email_sent:
+    except HTTPException:
+        # 重新抛出HTTP异常
+        raise
+    except Exception as e:
+        # 记录未预期的错误
+        logger.error(f"处理密码重置验证码请求时发生错误: {str(e)}")
+        # 返回通用错误消息
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="发送密码重置邮件失败",
+            detail="处理请求时发生错误，请稍后重试",
         )
-
-    return {"message": "如果邮箱已注册，密码重置验证码已发送"}
 
 
 @router.post("/password-reset/confirm", response_model=dict)
