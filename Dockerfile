@@ -10,8 +10,10 @@ ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
     TZ=Asia/Shanghai
 
-# 安装系统依赖
-RUN apt-get update && \
+# 使用阿里云镜像源并安装系统依赖
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    apt-get update && \
     apt-get install -y --no-install-recommends gcc libpq-dev curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -19,9 +21,9 @@ RUN apt-get update && \
 # 复制依赖文件
 COPY requirements.txt .
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install gunicorn
+# 使用阿里云 PyPI 镜像源安装 Python 依赖
+RUN pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r requirements.txt && \
+    pip install -i https://mirrors.aliyun.com/pypi/simple/ gunicorn
 
 # 创建数据和日志目录
 RUN mkdir -p /app/data /app/logs && \

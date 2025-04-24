@@ -23,6 +23,13 @@ services:
     networks:
       - credits-network
 
+# 添加 Docker 镜像构建加速配置
+x-build-args: &build-args
+  DOCKER_BUILDKIT: 1
+  BUILDKIT_INLINE_CACHE: 1
+  DOCKER_CLI_EXPERIMENTAL: enabled
+  DOCKER_REGISTRY_MIRROR: https://registry.docker-cn.com
+
   # 如果需要数据库服务，可以取消注释以下部分
   # db:
   #   image: postgres:14-alpine
