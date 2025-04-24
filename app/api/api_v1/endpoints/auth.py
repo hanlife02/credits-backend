@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Any
 import logging
 
@@ -42,6 +42,17 @@ def register_request(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="邮箱已经注册",
             )
+
+        # 检查是否已经存在未过期的验证码
+        existing_code = db.query(VerificationCode).filter(
+            VerificationCode.email == verification_request.email,
+            VerificationCode.purpose == "registration",
+            VerificationCode.created_at >= datetime.now() - timedelta(minutes=1)  # 一分钟内只能发送一次
+        ).first()
+
+        if existing_code:
+            logger.info(f"验证码请求过于频繁: {verification_request.email}")
+            return {"message": "验证码已发送到邮箱，请稍后再试"}
 
         # Generate verification code
         code = generate_verification_code()
@@ -199,6 +210,17 @@ def password_reset_request(
         if not user:
             # Don't reveal that the user doesn't exist
             logger.info(f"邮箱不存在，但不透露此信息: {password_reset.email}")
+            return {"message": "如果邮箱已注册，密码重置验证码已发送"}
+
+        # 检查是否已经存在未过期的验证码
+        existing_code = db.query(VerificationCode).filter(
+            VerificationCode.email == password_reset.email,
+            VerificationCode.purpose == "password_reset",
+            VerificationCode.created_at >= datetime.now() - timedelta(minutes=1)  # 一分钟内只能发送一次
+        ).first()
+
+        if existing_code:
+            logger.info(f"密码重置验证码请求过于频繁: {password_reset.email}")
             return {"message": "如果邮箱已注册，密码重置验证码已发送"}
 
         # Generate verification code
